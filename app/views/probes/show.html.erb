@@ -1,0 +1,75 @@
+<h2>FIELD : <%= @probe.field.name.upcase %> - PROBE : <%= @probe.name.upcase %></h2>
+
+<%= link_to "VIEW FIELD", {:controller => 'fields', :action => 'show', :id => @probe.field_id}, :class => 'btn-black btn-large' %>
+<%= link_to "UPLOAD TMP LOGS", {:controller => 'degrees', :action => 'new', :probe_id => @probe.id}, :class => 'btn-blue btn-large' %>
+<%= link_to "EDIT PROBE INFO", {:controller => 'probes', :action => 'edit', :id => @probe.id}, :class => 'btn-blue btn-large' %>
+
+
+<h3>PROBE LOCATION</h3>
+<div id="map" style="width:100%; height:300px; background-color:F2F2F2"></div>
+
+
+<div style="margin:50px 0">
+  <h2>CHILL UNIT OVERVIEW - <%= @chill_begin_date.strftime('%d %b %Y').upcase %> - <%= @chill_end_date.strftime('%d %b %Y').upcase %></h2>
+  <div style="float:right; width:60%">
+    <h3>POSITIVE CHILL UNITS BY MONTH (UTAH MODEL)</h3>
+    <%= column_chart @chill_units_range.group_by_month(:created_at).sum(:cold_units_utah) %>
+  </div>
+
+  <div style="width: 38%; margin-right:2%">
+    <h3>ACCUMULATED CHILL UNITS</h3>
+    <div></div>
+    <table cellpadding="0" cellspacing="0">
+      <tr>
+        <th>POSIT UNITS<br />UTAH MODEL</th>
+        <th>CHILL UNITS<br/>UTAH MODEL</th>
+        <th>< 7.2&#8451<br/>CHILL UNITS</th>
+      </tr>
+
+      <tr >
+        <td style="font-size:60px; line-height:100px"><%= @chill_units_range.sum(:cold_units_utah) %></td>
+        <td style="font-size:60px"><%= @chill_units_range.where('cold_units_utah > ?',0).sum(:cold_units_utah) %></td>
+        <td style="font-size:60px"><%= @chill_units_range.where('reading < ?',7.2).count %></td>
+      </tr>
+
+    </table>
+  </div>
+</div>
+
+
+
+
+
+
+<div style="clear:both; padding-top:100px; margin:50px 0">
+  <h3>MIN/MAKS AND CHILL UNITS</h3>
+  <%= line_chart [{name: "Daily Maximum", data: Degree.where(:probe_id => @probe.id).group_by_day(:created_at).maximum(:reading), color: '#FA8D67'},
+                {name: "Daily Minimum", data: Degree.where(:probe_id => @probe.id).group_by_day(:created_at).minimum(:reading), color: '#ADD8E6'},
+                {name: "Postive Chill Units (Utah)", data: Degree.where(:probe_id => @probe.id).group_by_day(:created_at, color: 'gray').sum(:cold_units_utah)}
+] %>
+</div>
+
+
+<script>
+
+
+    function initMap() {
+
+
+        var marker_position = {lat: <%= @probe.latitude %>, lng: <%= @probe.longitude %>};
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 18,
+            center: marker_position,
+
+        });
+        map.setMapTypeId('satellite');
+        var marker = new google.maps.Marker({
+            position: marker_position,
+            map: map,
+        });
+
+    };
+
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3jjoMddEPVxI1Z8IboGf_UDPIS6UjJBw&libraries=places&callback=initMap"> </script>

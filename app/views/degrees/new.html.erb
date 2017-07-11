@@ -1,0 +1,52 @@
+<%= link_to "VIEW #{@probe.name}", {:controller => 'probes', :action => 'show', :id => @probe.id}, :class => 'btn-blue btn-large' %>
+<h2>UPLOAD TEMPRATURE LOGS FOR <%= @probe.name.upcase %></h2>
+
+<div style="width: 40%">
+
+  <%= form_tag({:controller =>'degrees', :action => 'upload_logs', :probe_id => @probe.id},:multipart => true ) do %>
+
+      <div>Headers required date,degree</div>
+
+      <label>Upload CSV</label>
+      <%= file_field_tag :file, :class => 'btn-black'%>
+
+      <%= submit_tag "Upload File", :class => 'btn-black' %>
+
+  <% end %>
+  <h4>Calculation Postive Chill Units (UTAH MODEL)</h4>
+  <table style="width: 40%">
+    <tr style="text-align: center; font-weight:bold; font-size:12px; line-height:30px; border-bottom:1px solid #333333">
+      <td>Hourly Temp</td>
+      <td>Weighted Unit</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>< 1.4</td>
+      <td>0</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>1.5 - 2.4</td>
+      <td>0.5</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>2.5 - 9.1</td>
+      <td>1.0</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>9.2 - 12.4</td>
+      <td>0.5</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>12.5 - 15.9</td>
+      <td>0</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td>16 - 18</td>
+      <td>-0.5</td>
+    </tr>
+    <tr style="text-align: center; font-size:16px; line-height:30px; border-bottom:1px solid #333">
+      <td> > 18</td>
+      <td>-1.0</td>
+    </tr>
+  </table>
+
+</div>

@@ -1,0 +1,45 @@
+.btn-mini {
+    padding: 2px 4px;
+    line-height:10px;
+    font-size:10px;
+    border-width: 1px;
+}
+
+.btn-large {
+    padding: 10px 20px 10px 20px;
+    line-height:45px;
+    font-size:14px;
+    border-width: 2px;
+}
+
+.btn-blue {
+    -webkit-border-radius: 2;
+    -moz-border-radius: 2;
+    border-radius: 2px;
+    color: #1f628d;
+    border: solid #1f628d 2px;
+    text-decoration: none;
+}
+.btn-blue:hover {
+    background: #1f628d;
+    text-decoration: none;
+    color:white;
+}
+
+.btn-black {
+    -webkit-border-radius: 2;
+    -moz-border-radius: 2;
+    border-radius: 2px;
+    color: #333;
+    border-color:#333333;
+    border-style: solid;
+    text-decoration: none;
+    background-color: white;
+    cursor: pointer;
+}
+.btn-black:hover {
+    background: #333333;
+    text-decoration: none;
+    color:white;
+    cursor: pointer;
+}

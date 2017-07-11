@@ -1,0 +1,20 @@
+<h1>FIELDS</h1>
+<%= link_to "NEW FIELD", new_field_path, :class => 'btn-blue btn-large' %>
+
+<table cellpadding="0" cellspacing="0">
+  <tr>
+    <th>FIELD NAME</th>
+    <th>SIZA</th>
+    <th>PROBES</th>
+    <th></th>
+  </tr>
+  <% @fields.each do |field| %>
+    <tr>
+      <td style="text-align: left"><%= field.name %></td>
+      <td><%= field.size %></td>
+      <td><%= field.probes.count %></td>
+      <td><%= link_to "VIEW", {:controller => 'fields', :action => 'show', :id => field.id}, :class => 'btn-black btn-mini' %></td>
+    </tr>
+  <% end %>
+
+</table>

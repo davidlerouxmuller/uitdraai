@@ -1,0 +1,354 @@
+<h2>FIELD : <%= @field.name.upcase %></h2>
+
+
+<%= link_to "UPDATE FIELD INFO", {:controller =>'fields', :action => 'edit', :field_id => @field.id}, :class => 'btn-blue btn-large' %>
+
+
+
+<div style="width:48%; float:right">
+<h4>PROBES</h4>
+  <%= link_to "NEW PROBE", {:controller =>'probes', :action => 'new', :field_id => @field.id}, :class => 'btn-blue btn-large' %>
+<table cellspacing="0" cellpadding="0">
+  <tr>
+    <th>NAME</th>
+    <th>READINGS</th>
+    <th>PERIOD</th>
+    <th></th>
+  </tr>
+  <% @field.probes.each do |probe| %>
+  <tr>
+    <td style="text-align: left"><%= probe.name %></td>
+    <% if probe.degrees.count > 0 %>
+      <td><%= probe.degrees.count %></td>
+      <td><%= probe.degrees.order('created_at ASC').first.created_at.strftime('%d %b %Y') %> - <%= probe.degrees.order('created_at ASC').last.created_at.strftime('%d %b %Y') %></td>
+    <% else %>
+        <td>0</td>
+        <td>No Readings Uploaded</td>
+    <% end %>
+    <td  style="text-align: right">
+      <%= link_to "UPLOAD", {:controller => 'degrees', :action => 'new', :probe_id => probe.id}, :class => 'btn-black btn-mini' %>
+      <%= link_to "VIEW", {:controller => 'probes', :action => 'show', :id => probe.id}, :class => 'btn-black btn-mini' %></td>
+  </tr>
+  <% end %>
+</table>
+</div>
+
+<div style="width:50%;">
+  <div id="map" style="width:100%; height:500px; background-color:F2F2F2"></div>
+</div>
+
+<div style="margin:50px 0">
+  <h2>CHILL UNIT OVERVIEW - <%= @chill_begin_date.strftime('%d %b %Y').upcase %> - <%= @chill_end_date.strftime('%d %b %Y').upcase %></h2>
+  <div style="float:right; width:60%">
+    <h3>POSITIVE CHILL UNITS BY MONTH (UTAH MODEL)</h3>
+    <%= column_chart @field.probes.map { |probe|
+      {name: "#{probe.field.name} -#{probe.name}", data: Degree.where('created_at BETWEEN ? AND ? AND probe_id = ?',@chill_begin_date,@chill_end_date,probe.id).group_by_month(:created_at).sum(:cold_units_utah)}
+    } %>
+  </div>
+
+  <div style="width: 38%; margin-right:2%">
+    <h3>ACCUMULATED CHILL UNITS</h3>
+    <div></div>
+    <table cellpadding="0" cellspacing="0">
+      <tr>
+        <th>PROBE</th>
+        <th>PST UTAH CHILL UNITS</th>
+        <th>UTAH CHILL UNITS</th>
+        <th>< 7.2&#8451 CHILL UNITS</th>
+      </tr>
+      <% @chill_units_by_probe.each do |obj| %>
+        <tr>
+          <td style="text-align: left"><%= obj.probe.name %></td>
+          <td><b><%= obj.chill_units %></b></td>
+          <td><%= obj.probe.degrees.where('created_at BETWEEN ? AND ? AND cold_units_utah > ?',@chill_begin_date,@chill_end_date,0).sum(:cold_units_utah) %></td>
+          <td><%= obj.probe.degrees.where('created_at BETWEEN ? AND ? AND reading < ?',@chill_begin_date,@chill_end_date,7.2).count %></td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+</div>
+
+<div style="margin:50px 0; clear:both; padding-top:100px">
+  <h3>MAKSIMUM TEMPRATURE</h3>
+  <%= line_chart @field.probes.map { |probe|
+    {name: "#{probe.name}", data: Degree.where(:probe_id => probe.id).group_by_day(:created_at).maximum(:reading)}
+  } %>
+</div>
+
+<div style="margin:50px 0">
+  <h3>MINIMUM TEMPRATURE</h3>
+  <%= line_chart @field.probes.map { |probe|
+    {name: "#{probe.name}", data: Degree.where(:probe_id => probe.id).group_by_day(:created_at).minimum(:reading)}
+  } %>
+</div>
+
+<h3>DAILY CHILL UNITS (UTAH MODEL)</h3>
+<%= column_chart @field.probes.map { |probe|
+  {name: "#{probe.name}", data: Degree.where('created_at BETWEEN ? AND ? AND probe_id = ?',@chill_begin_date,@chill_end_date,probe.id).group_by_day(:created_at).sum(:cold_units_utah)}
+} %>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+    function initMap() {
+        var polygon;
+        var default_position = {lat: -26.8746024, lng: 24.6939132};
+        var map = new google.maps.Map(document.getElementById('map'), {
+            zoom: 1,
+            center: default_position
+        });
+
+
+        // -- if existing data --
+    <% if @field.field_polygon.to_s.length > 20 %>
+        //var location_marker = 	{lat: <%= @field.latitude %>, lng: <%= @field.longitude %>};
+      /* recenter map */
+        /* map.setCenter( location_marker); */
+        map.zoom = 15;
+        map.setMapTypeId('satellite');
+      /* drop address marker */
+       // var marker_address = new google.maps.Marker({ position: location_marker, map: map});
+
+        add_polygon(<%= @field.latitude %>,<%= @field.longitude %>);
+
+
+
+
+
+
+
+        <% @field.probes.each do |probe| %>
+
+        var contentString = "<h4><%= probe.name %></h4><%= probe.description %> <p>Chill Units '<%= Date.today.year %>: <%= Degree.where('probe_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) > ? AND MONTH(created_at) < ?',probe.id,Date.today.year,4,9).sum(:cold_units_utah) %></p> <p><a href='/probes/<%= probe.id %>', class='btn-black btn-mini'>VIEW</a></p>";
+
+        var infowindow = new google.maps.InfoWindow({
+            content: contentString,
+        });
+
+
+
+
+          var marker_position = {lat: <%= probe.latitude %>, lng: <%= probe.longitude %>};
+          var marker = new google.maps.Marker({
+              position: marker_position,
+              label: '<%= probe.name %>',
+              map: map,
+          });
+          marker.addListener('click', function() {
+              infowindow.open(map, marker);
+              //window.location.href = '/probes/<%= probe.id %>';
+          });
+        <% end %>
+
+        var input = (document.getElementById('pac-input'));
+
+        var autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        //var infowindow = new google.maps.InfoWindow();
+        var marker = new google.maps.Marker({
+            map: map,
+            anchorPoint: new google.maps.Point(0, -29)
+        });
+
+
+
+
+/*
+        var input = (document.getElementById('pac-input'));
+
+        var autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        var infowindow = new google.maps.InfoWindow();
+        var marker = new google.maps.Marker({
+            map: map,
+            anchorPoint: new google.maps.Point(0, -29)
+        });
+
+*/
+
+
+        autocomplete.addListener('place_changed', function() {
+           // infowindow.close();
+            marker.setVisible(false);
+            var place = autocomplete.getPlace();
+            if (!place.geometry) {
+                window.alert("Autocomplete's returned place contains no geometry");
+                return;
+            }
+
+            // If the place has a geometry, then present it on a map.
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(9);  // Why 17? Because it looks good.
+            }
+            marker.setIcon(/** @type {google.maps.Icon} */({
+                url: place.icon,
+                size: new google.maps.Size(71, 71),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(17, 34),
+                scaledSize: new google.maps.Size(35, 35)
+            }));
+
+
+            create_polygon(place.geometry.location.lat(),place.geometry.location.lng());
+
+            document.getElementById("field_latitude").value = place.geometry.location.lat();
+            document.getElementById("field_longitude").value = place.geometry.location.lng();
+
+
+
+            //
+
+            marker.setPosition(place.geometry.location);
+            marker.setVisible(true);
+
+            var address = '';
+            if (place.address_components) {
+                address = [
+                    (place.address_components[0] && place.address_components[0].short_name || ''),
+                    (place.address_components[1] && place.address_components[1].short_name || ''),
+                    (place.address_components[2] && place.address_components[2].short_name || '')
+                ].join(' ');
+            }
+
+
+            var street_number = "";
+            var street_name = "";
+            var suburb = "";
+            var city = "";
+            var province = "";
+            var country = "";
+            var code = "";
+            console.log(place)
+            for (var i = 0; i < place.address_components.length; i++) {
+                var addressType = place.address_components[i].types[0];
+                if (addressType == 'street_number') {
+                    street_number = place.address_components[i].short_name;
+                } else if (addressType == 'route') {
+                    street_name = place.address_components[i].short_name;
+                } else if (addressType == 'sublocality_level_2') {
+                    suburb = place.address_components[i].short_name;
+                } else if (addressType == 'locality') {
+                    city = place.address_components[i].short_name;
+                } else if (addressType == 'administrative_area_level_1') {
+                    province = place.address_components[i].short_name;
+                } else if (addressType == 'country') {
+                    country = place.address_components[i].short_name;
+                } else if (addressType == 'postal_code') {
+                    code = place.address_components[i].short_name;
+                }
+
+            }
+
+            //document.getElementById("destination_address_street").value = street_number + ' ' + street_name + ' ' + suburb;
+            //document.getElementById("destination_address_code").value = code;
+            //document.getElementById("destination_address_city").value = city;
+            $('#street').html('Street : ' + street_number + ' ' + street_name + ' ' + suburb);
+            $('#city').html('City : ' + city);
+            $('#code').html('Code : ' + code);
+
+
+
+
+
+
+
+        });
+
+
+
+
+        function add_polygon() {
+
+
+            var polygon_array = JSON.parse('<%= @field.field_polygon.inspect.gsub('"','') %>');
+            var polygon_path =[];
+            for(var i=0; i<polygon_array.length; i++) {
+                polygon_path.push(new google.maps.LatLng(polygon_array[i][0], polygon_array[i][1]));
+                console.log(polygon_array[i][0]);
+                console.log(polygon_array[i][1]);
+                var pol_lat = polygon_array[i][0];
+                var pol_lng = polygon_array[i][1];
+            }
+
+            // Define a rectangle and set its editable property to true.
+            polygon = new google.maps.Polygon({
+                paths: polygon_path,
+                editable: false,
+                draggable: false,
+                geodesic: true
+            });
+            polygon.setMap(map);
+            //var pol_lat = polygon.my_getBounds().getCenter().lat();
+            //var pol_lng = polygon.my_getBounds().getCenter().lng();
+            console.log(pol_lat);
+            console.log(pol_lng);
+            console.log('----------------------------');
+            var marker = 	{lat: pol_lat, lng: pol_lng};
+          /* recenter map */
+            map.setCenter( marker);
+        };
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+
+    <% else %>
+    <% end %>
+
+
+
+
+
+</script>
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3jjoMddEPVxI1Z8IboGf_UDPIS6UjJBw&libraries=places&callback=initMap"> </script>
+
+
+
+
+
+<!-- plus and minus button for checkout -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
